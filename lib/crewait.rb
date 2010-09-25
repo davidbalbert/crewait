@@ -85,9 +85,9 @@ module Crewait
 
       # sqlite
       if ActiveRecord::Base.connection.adapter_name.downcase == 'sqlite'
-        query_string = "BEGIN;"
+        query_string = "BEGIN TRANSACTION; "
         while !sql.empty? do
-          query_string << "INSERT INTO #{model_class} (#{keys.join(', ')}) VALUES #{sql.shift};"
+          query_string << "INSERT INTO #{model_class} (#{keys.join(', ')}) VALUES #{sql.shift}; "
         end
         query_string << "COMMIT;"
         ActiveRecord::Base.connection.execute(query_string)

@@ -83,13 +83,24 @@ module Crewait
       values = values.transpose
       sql = values.to_crewait_sql
 
-  		while !sql.empty? do
-  			query_string = "insert into #{model_class} (#{keys.join(', ')}) values #{sql.shift}"
-  			while !sql.empty? && (query_string.length + sql.last.length < 999_999)  do
-  				query_string << ',' << sql.shift
-  			end
+      # sqlite
+      if ActiveRecord::Base.connection.adapter_name.downcase == 'sqlite'
+        query_string = "BEGIN;"
+        while !sql.empty? do
+          query_string << "INSERT INTO #{model_class} (#{keys.join(', ')}) VALUES #{sql.shift};"
+        end
+        query_string << "COMMIT;"
         ActiveRecord::Base.connection.execute(query_string)
-  		end
+      # mysql, postgresql
+      else
+        while !sql.empty? do
+          query_string = "insert into #{model_class} (#{keys.join(', ')}) values #{sql.shift}"
+          while !sql.empty? && (query_string.length + sql.last.length < 999_999)  do
+            query_string << ',' << sql.shift
+          end
+          ActiveRecord::Base.connection.execute(query_string)
+        end
+      end
     end
     # this was originally called "<<", but changed for namespacing
     def respectively_insert(other_hash)

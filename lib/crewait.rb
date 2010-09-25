@@ -39,18 +39,20 @@ module Crewait
   module BaseMethods
     def next_insert_id
       connection = ActiveRecord::Base.connection
-      database = connection.current_database
       adapter = connection.adapter_name
       case adapter.downcase
         when 'postgresql' then
           ActiveRecord::Base.connection.execute("SELECT nextval('#{self.table_name}_id_seq')")[0]["nextval"].to_i
         when 'mysql' then
+          database = connection.current_database
           ActiveRecord::Base.connection.execute( "
             SELECT auto_increment
             FROM information_schema.tables
             WHERE table_name='#{self.table_name}' AND
               table_schema ='#{database}'
             " ).fetch_hash['auto_increment'].to_i
+        when 'sqlite' then
+          ActiveRecord::Base.connection.execute("SELECT * FROM sqlite_sequence WHERE name='#{self.table_name}'")[0]['seq'] + 1
         else
           raise "your database is not supported by crewait! want to write a patch?"
       end
